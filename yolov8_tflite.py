@@ -311,15 +311,20 @@ class Yolov8TFLite:
                 # Draw the detection on the input image
                 self.draw_detections(input_image, box, score, class_id)      
 
-############################## Turn on rely if a human is detected################################################
+############################## Turn on relay if an animal is detected (human is class 0)################################################
 #            latch_time = 0 #Time when the latch was last activated
 #            is_latched = False #state of the latch
 #            if score > 0.25 and 730<time_now_min<740 and (class_id==0 or class_id==15 or class_id ==16 or class_id ==17 or class_id==18 or class_id==19 or class_id==21 or class_id==22):
-            if score > 0.25 and (class_id==0 or class_id==15 or class_id ==16 or class_id ==17 or class_id==18 or class_id==19 or class_id==21 or class_id==22):
+            if score > 0.25 and (class_id==15 or class_id ==16 or class_id ==17 or class_id==18 or class_id==19 or class_id==21 or class_id==22):
                set_is_latched_true() #Call Global function to activate the latch
                set_latch_time()			#Call Global function
 #               subprocess.run(['pinctrl', 'set', '4', 'op', 'dh'], check=True)   #Turn pin 4 on
                print("Latch activated")
+#################this sections writes images to memory for ML training or test######################
+               timestamp = time.strftime("%Y%m%d_%H%M%S")			#format:  yyyymmdd_hhmmss
+               filename = f'image_{timestamp}.jpg'
+               cv2.imwrite(filename, input_image)
+               print(f"Image captured and saved as {filename}")
 #            else:
 #               print('current minus latch = ', y)
 #               print('latched state ', is_latched)
@@ -359,18 +364,14 @@ class Yolov8TFLite:
 #        print('latch timediff = ', latch_timediff)
            
 ######################################### Strobe USS and Light###########################################################################
-        if is_latched == True:
-            print('Human detected, strobe and USS turned on')
-            subprocess.run(['pinctrl', 'set', '22', 'op', 'dh'], check=True)   #Turn pin 22 on
-            subprocess.run(['pinctrl', 'set', '18', 'op', 'dh'], check=True)   #Turn pin 18 (ultrasonic trigger) on 
-            time.sleep(0.1)	#Turn on to strobe
-            subprocess.run(['pinctrl', 'set', '22', 'op', 'dl'], check=True)   #Turn pin 22 off
-            subprocess.run(['pinctrl', 'set', '18', 'op', 'dl'], check=True)   #Turn pin 18 (ultrasonic trigger) off 
-            time.sleep(0.1) 	#Turn off to strobe
+#         if is_latched == True:
+#             print('animal detected, strobe and USS turned on')
 #             subprocess.run(['pinctrl', 'set', '22', 'op', 'dh'], check=True)   #Turn pin 22 on
-#             time.sleep(0.25)	#Turn on to strobe
+#             subprocess.run(['pinctrl', 'set', '18', 'op', 'dh'], check=True)   #Turn pin 18 (ultrasonic trigger) on 
+#             time.sleep(0.1)	#Turn on to strobe
 #             subprocess.run(['pinctrl', 'set', '22', 'op', 'dl'], check=True)   #Turn pin 22 off
-#             time.sleep(0.25) 	#Turn off to strobe
+#             subprocess.run(['pinctrl', 'set', '18', 'op', 'dl'], check=True)   #Turn pin 18 (ultrasonic trigger) off 
+#             time.sleep(0.1) 	#Turn off to strobe
 #########################################################################################################################################
         # Perform post-processing on the outputs to obtain output image.
         return self.postprocess(self.img, output)
@@ -485,8 +486,7 @@ if __name__ == "__main__":
     frames = 0
 
     while True:
-###		Add if time of day.  Ident if latest_img statement.  On else case shutoff all the relays
-##########################################Update current time and monitor################################################################
+########################################## Update current time and monitor################################################################
         d = datetime.datetime.now()
         today_date = d.date() # date today
         #print('todays date ', today_date)
@@ -497,13 +497,15 @@ if __name__ == "__main__":
         time_now_min = d.hour * 60 + d.minute # time now in minutes from midnight
 #        time_now_min = 1150 #for testing
         print('time now in minutes ', time_now_min)
+
         logging.info('time now in minutes ', time_now_min)
-        if 300<time_now_min<375:   #5AM to 6:15AM
+############################################ ambient light control########################################################################
+        if 1<time_now_min<480:   #12:01AM to 8AM
             subprocess.run(['pinctrl', 'set', '4', 'op', 'dh'], check=True)   #Turn pin 4 on which is ambient light            
         else:
             subprocess.run(['pinctrl', 'set', '4', 'op', 'dl'], check=True)   #Turn pin 4 off    
 ################Only calls inferencing functions or runs the following IF statement during these times of day############################                     
-        if 301<time_now_min<375:   #5:01AM to 6:15AM
+        if 1<time_now_min<480:   #5:01AM (301mins) to 6:15AM (375mins)
 #            main()
 #        time.sleep (60)		#sleep 60 seconds        
 ##########################################################################################################################################        
