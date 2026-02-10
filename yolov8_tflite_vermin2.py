@@ -25,18 +25,14 @@ line_settings = {line: gpiod.LineSettings(direction=Direction.OUTPUT, output_val
 
 req = gpiod.request_lines(chip, consumer="my-gpio", config=line_settings)
 
-try:
-       req.set_values({4: Value.INACTIVE, 22: Value.INACTIVE,6: Value.INACTIVE,26: Value.INACTIVE})
-
-       time.sleep(1)
-
-       req.set_values({4: Value.ACTIVE, 22: Value.ACTIVE,6: Value.ACTIVE,26: Value.ACTIVE})
-
-       time.sleep(1)
-
-       req.set_values({4: Value.INACTIVE, 22: Value.INACTIVE,6: Value.INACTIVE,26: Value.INACTIVE})
-finally:
-       req.release()  #important to manage cleanup
+#try:
+#       req.set_values({4: Value.INACTIVE, 22: Value.INACTIVE,6: Value.INACTIVE,26: Value.INACTIVE})
+#       time.sleep(1)
+#       req.set_values({4: Value.ACTIVE, 22: Value.ACTIVE,6: Value.ACTIVE,26: Value.ACTIVE})
+#       time.sleep(1)
+#       req.set_values({4: Value.INACTIVE, 22: Value.INACTIVE,6: Value.INACTIVE,26: Value.INACTIVE})
+#finally:
+#       req.release()  #important to manage cleanup
 
 #############################################################################################
 # Declare as global variables, can be updated based trained model image size
@@ -270,8 +266,8 @@ class Yolov8TFLite:
                 self.draw_detections(input_image, box, score, class_id)
             while True:
                 if score > 0.25 and class_id[0]:
-                     led_line4.set_value(1)	#on  - old GPOID method
-#                     req.set_values({4: Value.ACTIVE})  #on
+#                     led_line4.set_value(1)	#on  - old GPOID method
+                     req.set_values({4: Value.ACTIVE})  #on
         return input_image
 ##############################attempt to turn on rely if a human is detected################################################
 #        while True:
