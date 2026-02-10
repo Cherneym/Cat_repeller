@@ -264,10 +264,10 @@ class Yolov8TFLite:
                 print(f'score: {score} class: {class_id} box: {box}')
                 # Draw the detection on the input image
                 self.draw_detections(input_image, box, score, class_id)
-            while True:
-                if score > 0.25 and class_id[0]:
+#            while True:
+                if class_id==0:
 #                     led_line4.set_value(1)	#on  - old GPOID method
-                     req.set_values({4: Value.ACTIVE})  #on
+                    req.set_values({4: Value.ACTIVE})  #on
         return input_image
 ##############################attempt to turn on rely if a human is detected################################################
 #        while True:
