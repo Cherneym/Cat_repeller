@@ -36,8 +36,8 @@ req = gpiod.request_lines(chip, consumer="my-gpio", config=line_settings)
 
 #############################################################################################
 # Declare as global variables, can be updated based trained model image size
-img_width = 320
-img_height = 320
+img_width = 640
+img_height = 640
 
 #os.environ['LD_LIBRARY_PATH'] = '/usr/lib/armnn:/usr/lib/armnn/delegate'
 sys.path.append('/usr/lib/armnn')
@@ -264,10 +264,10 @@ class Yolov8TFLite:
                 print(f'score: {score} class: {class_id} box: {box}')
                 # Draw the detection on the input image
                 self.draw_detections(input_image, box, score, class_id)
-#            while True:
-                if class_id==0:
-#                     led_line4.set_value(1)	#on  - old GPOID method
-                    req.set_values({4: Value.ACTIVE})  #on
+                # Turn on relay if detection meets criteria (class_id == 0 is typically "person")
+                if class_id == 0:
+                    # led_line4.set_value(1)  # on - old GPIO method
+                    req.set_values({4: Value.ACTIVE})  # on
         return input_image
 ##############################attempt to turn on rely if a human is detected################################################
 #        while True:
@@ -327,6 +327,14 @@ class Yolov8TFLite:
 
         # Preprocess the image data
         self.q = self.input_details[0]['quantization']
+
+# Global variable for the output frame that the HTTP server will stream
+output_image = None
+
+def get_frame():
+    """Return the latest processed frame with detections."""
+    global output_image
+    return output_image
 
 class MJPEGStreamHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -398,8 +406,6 @@ if __name__ == "__main__":
             global latest_img
             latest_img = subscriber.recv()
 
-    output_image = None
-
     # Start the HTTP server in a separate thread
     server_thread = threading.Thread(target=serve)
     server_thread.start()
@@ -425,10 +431,6 @@ if __name__ == "__main__":
             img = img[:, :, 0:3]
             output_image = detection.main(img)
             frames += 1
-
-            def get_frame():
-                # Capture frame from the video capture device
-                return output_image
 
             #cv2.imwrite('input.jpg', img)
             #cv2.imwrite('output.jpg', output_image)
