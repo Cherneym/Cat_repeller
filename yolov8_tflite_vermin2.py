@@ -417,23 +417,28 @@ if __name__ == "__main__":
     frames = 0
 
     while True:
-        if latest_img is not None:
-            stop = time.time()
-            if stop - start > 1:
-                diff = stop - start
-                fps = frames / diff
-                start = stop
-                frames = 0
-                print(f'FPS: {fps}')
+        try:
+            if latest_img is not None:
+                stop = time.time()
+                if stop - start > 1:
+                    diff = stop - start
+                    fps = frames / diff
+                    start = stop
+                    frames = 0
+                    print(f'FPS: {fps}')
 
-            img = np.frombuffer(latest_img, 'uint8')       
-            img = np.reshape(img, (480, 640, 4))
-            img = img[:, :, 0:3]
-            output_image = detection.main(img)
-            frames += 1
+                img = np.frombuffer(latest_img, 'uint8')       
+                img = np.reshape(img, (480, 640, 4))
+                img = img[:, :, 0:3]
+                output_image = detection.main(img)
+                frames += 1
 
-            #cv2.imwrite('input.jpg', img)
-            #cv2.imwrite('output.jpg', output_image)
+                #cv2.imwrite('input.jpg', img)
+                #cv2.imwrite('output.jpg', output_image)
+        except Exception as e:
+            print(f'Error in detection loop: {e}')
+            import traceback
+            traceback.print_exc()
 #********************************************************************************
 #finally:
 #       req.release()  #important to manage cleanup of GPIOD
