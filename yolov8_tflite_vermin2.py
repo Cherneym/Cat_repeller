@@ -16,7 +16,6 @@ import threading
 import os
 import sys
 import datetime
-import random
 
 ####################################################################################
 #############This section initializes HAT Relays for RPi5 - Works....Again!! ################
@@ -43,77 +42,11 @@ img_width = 320 #Orginal model was 320
 img_height = 320  #original model was 320
 
 #############################################################################################
-# Timed Image Capture - captures 1 random image every interval (default 30 minutes)
+# Simple Timed Image Capture - captures 1 image every 30 minutes
 #############################################################################################
-class TimedImageCapture:
-    """Captures a random image at timed intervals for monitoring/debugging."""
-    
-    def __init__(self, save_dir="timed_captures", interval_minutes=30):
-        """
-        Args:
-            save_dir: Directory to save captured images
-            interval_minutes: Time between captures in minutes
-        """
-        self.save_dir = save_dir
-        self.interval_seconds = interval_minutes * 60
-        self.last_capture_time = time.time()
-        self.capture_pending = False
-        self.frames_since_interval = 0
-        self.random_frame_target = 0
-        
-        # Create save directory if it doesn't exist
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
-            print(f"Created timed capture directory: {self.save_dir}")
-        
-        print(f"Timed capture enabled: saving 1 random image every {interval_minutes} minutes to '{self.save_dir}'")
-    
-    def check_and_capture(self, image, output_image=None):
-        """
-        Check if it's time to capture and save an image.
-        
-        Args:
-            image: The raw input image
-            output_image: The image with detections drawn (optional)
-        """
-        current_time = time.time()
-        elapsed = current_time - self.last_capture_time
-        
-        # Start of new interval - set up for random capture
-        if elapsed >= self.interval_seconds and not self.capture_pending:
-            self.capture_pending = True
-            self.frames_since_interval = 0
-            # Pick a random frame within the next 60 seconds (or ~1800 frames at 30fps)
-            self.random_frame_target = random.randint(1, 300)  # Random frame in next ~10 seconds
-            print(f"Timed capture: will capture frame #{self.random_frame_target}")
-        
-        # Count frames and capture at the random target
-        if self.capture_pending:
-            self.frames_since_interval += 1
-            
-            if self.frames_since_interval >= self.random_frame_target:
-                self._save_image(image, output_image)
-                self.capture_pending = False
-                self.last_capture_time = current_time
-    
-    def _save_image(self, image, output_image=None):
-        """Save the image with timestamp filename."""
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Save raw image
-        raw_filename = os.path.join(self.save_dir, f"capture_{timestamp}_raw.jpg")
-        cv2.imwrite(raw_filename, image)
-        print(f"Timed capture saved: {raw_filename}")
-        
-        # Save image with detections if available
-        if output_image is not None:
-            det_filename = os.path.join(self.save_dir, f"capture_{timestamp}_detections.jpg")
-            cv2.imwrite(det_filename, output_image)
-            print(f"Timed capture saved: {det_filename}")
-
-# Initialize timed capture (set to None to disable, or adjust interval)
-# timed_capture = TimedImageCapture(save_dir="timed_captures", interval_minutes=30)
-timed_capture = None  # Set to above line to enable
+TIMED_CAPTURE_ENABLED = True  # Set to False to disable
+CAPTURE_INTERVAL_MINUTES = 30
+last_timed_capture = 0  # Will be set to time.time() on first run
 
 #os.environ['LD_LIBRARY_PATH'] = '/usr/lib/armnn:/usr/lib/armnn/delegate'
 sys.path.append('/usr/lib/armnn')
@@ -343,9 +276,9 @@ class Yolov8TFLite:
                 # Draw the detection on the input image
                 self.draw_detections(input_image, box, score, class_id)
 #            while True:
-                if class_id==0:
+                # if class_id==0:
 #                     led_line4.set_value(1)	#on  - old GPOID method
-                    req.set_values({4: Value.ACTIVE})  #on
+                    # req.set_values({4: Value.ACTIVE})  #on  # Uncomment when GPIO is enabled
 #################this sections writes images to memory for ML training or test######################
             if score > 0.25 and (class_id==0 or class_id ==1 or class_id ==2):
                timestamp = time.strftime("%Y%m%d_%H%M%S")			#format:  yyyymmdd_hhmmss
@@ -511,9 +444,16 @@ if __name__ == "__main__":
             output_image = detection.main(img)
             frames += 1
             
-            # Timed image capture (every 30 minutes, 1 random image)
-            if timed_capture is not None:
-                timed_capture.check_and_capture(img, output_image)
+            # Simple timed image capture (every 30 minutes)
+            global last_timed_capture
+            if TIMED_CAPTURE_ENABLED:
+                if last_timed_capture == 0:
+                    last_timed_capture = time.time()  # Initialize on first run
+                if time.time() - last_timed_capture > CAPTURE_INTERVAL_MINUTES * 60:
+                    filename = f'timed_{time.strftime("%Y%m%d_%H%M%S")}.jpg'
+                    cv2.imwrite(filename, img)
+                    print(f"Timed capture saved: {filename}")
+                    last_timed_capture = time.time()
 
             def get_frame():
                 # Capture frame from the video capture device
