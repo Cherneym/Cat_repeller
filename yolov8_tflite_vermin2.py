@@ -45,7 +45,7 @@ img_height = 320  #original model was 320
 # Simple Timed Image Capture - captures 1 image every 30 minutes
 #############################################################################################
 TIMED_CAPTURE_ENABLED = True  # Set to False to disable
-CAPTURE_INTERVAL_MINUTES = 30
+CAPTURE_INTERVAL_MINUTES = 1 #This changes the random image capture time interval
 last_timed_capture = 0  # Will be set to time.time() on first run
 
 #os.environ['LD_LIBRARY_PATH'] = '/usr/lib/armnn:/usr/lib/armnn/delegate'
@@ -445,7 +445,7 @@ if __name__ == "__main__":
             frames += 1
             
             # Simple timed image capture (every 30 minutes)
-            global last_timed_capture
+#            global last_timed_capture
             if TIMED_CAPTURE_ENABLED:
                 if last_timed_capture == 0:
                     last_timed_capture = time.time()  # Initialize on first run
