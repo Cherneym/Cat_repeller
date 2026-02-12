@@ -1,0 +1,14 @@
+Image captured and saved as image_20260212_131254.jpg
+score: 0.5372427701950073 class: 0 box: [np.float32(178.9134), np.float32(303.98236), np.float32(187.66537), np.float32(104.13475)]
+Traceback (most recent call last):
+  File "/home/dw00621/Documents/cat_detector/yolov8_tflite_vermin2.py", line 511, in <module>
+    output_image = detection.main(img)
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/home/dw00621/Documents/cat_detector/yolov8_tflite_vermin2.py", line 388, in main
+    return self.postprocess(self.img, output)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dw00621/Documents/cat_detector/yolov8_tflite_vermin2.py", line 348, in postprocess
+    req.set_values({4: Value.ACTIVE})  #on
+    ^^^
+NameError: name 'req' is not defined
+
