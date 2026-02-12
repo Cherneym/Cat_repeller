@@ -1,7 +1,8 @@
+#The purpose of this app is to capture images based upon detection using Yolov8 model trained to detect watervermin
+#Class 0 = beaver, 1 = otter, 2 = muskrat
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
 import argparse
-
 import cv2
 import numpy as np
 #from tflite_runtime import interpreter as tflite
@@ -19,11 +20,11 @@ import sys
 #############This section initializes HAT Relays for RPi5 - Works....Again!! ################
 import gpiod
 from gpiod.line import Direction, Value
-chip = "/dev/gpiochip0"
-line_settings = {line: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
-       for line in [4, 22, 6, 26]}
+#chip = "/dev/gpiochip0"
+#line_settings = {line: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
+#       for line in [4, 22, 6, 26]}
 
-req = gpiod.request_lines(chip, consumer="my-gpio", config=line_settings)
+#req = gpiod.request_lines(chip, consumer="my-gpio", config=line_settings)
 
 #try:
 #       req.set_values({4: Value.INACTIVE, 22: Value.INACTIVE,6: Value.INACTIVE,26: Value.INACTIVE})
@@ -36,8 +37,8 @@ req = gpiod.request_lines(chip, consumer="my-gpio", config=line_settings)
 
 #############################################################################################
 # Declare as global variables, can be updated based trained model image size
-img_width = 640
-img_height = 640
+img_width = 320 #Orginal model was 320
+img_height = 320  #original model was 320
 
 #os.environ['LD_LIBRARY_PATH'] = '/usr/lib/armnn:/usr/lib/armnn/delegate'
 sys.path.append('/usr/lib/armnn')
@@ -50,6 +51,8 @@ class LetterBox:
         self.auto = auto
         self.scaleFill = scaleFill
         self.scaleup = scaleup
+        
+        
         self.stride = stride
         self.center = center  # Put the image in the middle or top-left
 
@@ -264,10 +267,17 @@ class Yolov8TFLite:
                 print(f'score: {score} class: {class_id} box: {box}')
                 # Draw the detection on the input image
                 self.draw_detections(input_image, box, score, class_id)
-                # Turn on relay if detection meets criteria (class_id == 0 is typically "person")
-                if class_id == 0:
-                    # led_line4.set_value(1)  # on - old GPIO method
-                    req.set_values({4: Value.ACTIVE})  # on
+#            while True:
+                if class_id==0:
+#                     led_line4.set_value(1)	#on  - old GPOID method
+                    req.set_values({4: Value.ACTIVE})  #on
+#################this sections writes images to memory for ML training or test######################
+            if score > 0.25 and (class_id==0 or class_id ==1 or class_id ==2):
+               timestamp = time.strftime("%Y%m%d_%H%M%S")			#format:  yyyymmdd_hhmmss
+               filename = f'image_{timestamp}.jpg'
+               cv2.imwrite(filename, input_image)
+               print(f"Image captured and saved as {filename}")
+
         return input_image
 ##############################attempt to turn on rely if a human is detected################################################
 #        while True:
@@ -327,14 +337,6 @@ class Yolov8TFLite:
 
         # Preprocess the image data
         self.q = self.input_details[0]['quantization']
-
-# Global variable for the output frame that the HTTP server will stream
-output_image = None
-
-def get_frame():
-    """Return the latest processed frame with detections."""
-    global output_image
-    return output_image
 
 class MJPEGStreamHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -406,6 +408,8 @@ if __name__ == "__main__":
             global latest_img
             latest_img = subscriber.recv()
 
+    output_image = None
+
     # Start the HTTP server in a separate thread
     server_thread = threading.Thread(target=serve)
     server_thread.start()
@@ -417,28 +421,27 @@ if __name__ == "__main__":
     frames = 0
 
     while True:
-        try:
-            if latest_img is not None:
-                stop = time.time()
-                if stop - start > 1:
-                    diff = stop - start
-                    fps = frames / diff
-                    start = stop
-                    frames = 0
-                    print(f'FPS: {fps}')
+        if latest_img is not None:
+            stop = time.time()
+            if stop - start > 1:
+                diff = stop - start
+                fps = frames / diff
+                start = stop
+                frames = 0
+                print(f'FPS: {fps}')
 
-                img = np.frombuffer(latest_img, 'uint8')       
-                img = np.reshape(img, (480, 640, 4))
-                img = img[:, :, 0:3]
-                output_image = detection.main(img)
-                frames += 1
+            img = np.frombuffer(latest_img, 'uint8')       
+            img = np.reshape(img, (480, 640, 4))
+            img = img[:, :, 0:3]
+            output_image = detection.main(img)
+            frames += 1
 
-                #cv2.imwrite('input.jpg', img)
-                #cv2.imwrite('output.jpg', output_image)
-        except Exception as e:
-            print(f'Error in detection loop: {e}')
-            import traceback
-            traceback.print_exc()
+            def get_frame():
+                # Capture frame from the video capture device
+                return output_image
+
+#           cv2.imwrite('input.jpg', img)
+#           cv2.imwrite('output.jpg', output_image)
 #********************************************************************************
 #finally:
 #       req.release()  #important to manage cleanup of GPIOD
