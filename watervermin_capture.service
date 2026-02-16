@@ -1,0 +1,16 @@
+[Unit]
+Description=water vermin image capture service
+After=network.target zmq.service
+Requires=zmq.service
+
+[Service]
+Type=simple
+User=dw00621
+WorkingDirectory=/home/dw00621/Documents/cat_detector
+ExecStartPre=/bin/sleep 5
+ExecStart=/home/dw00621/Documents/cat_detector/venv311/bin/python /home/dw00621/Documents/cat_detector/yolov8_tflite_vermin2.py
+Restart=always
+RestartSec=10 
+
+[Install]
+WantedBy=multi-user.target
